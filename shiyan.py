@@ -17,6 +17,11 @@ class child(father):
 te=child()
 te.runf(223)
 
+def changelist(list1):
+    list1[0]=2
+    
+list1=[1,2]
+changelist(list1)
 
 '''
 import scipy
