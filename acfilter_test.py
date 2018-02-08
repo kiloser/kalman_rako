@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import scipy.fftpack
 import numpy as np
 import scipy
+from scipy import signal
 def simple_low_pass(acceldata):
     udata=0
     lastdata=0
@@ -43,25 +44,35 @@ T = 1.0 / 100.0
 x = np.linspace(0.0, N*T, N)
 y = [ii for ii in accelxdata]
 fig1=plt.figure(1)
-ax=fig1.add_subplot(111)
+ax=fig1.add_subplot(121)
+ax.set_ylim(-2,0)
+ax.set_ylabel('Accel x')
+ax.set_xlabel('Time')
 ax.plot(x,y)#plt raw data
 
 yf = scipy.fftpack.fft(y)
 xf = np.linspace(0.0, 1.0/(2.0*T), N/2)
 fig2=plt.figure(2)
-ax2=fig2.add_subplot(111)
+ax2=fig2.add_subplot(121)
+ax2.set_ylabel('Amplitude')
+ax2.set_xlabel('Frequency')
 ax2.plot(xf[1:], 2.0/N * np.abs(yf[:N//2][1:]))
 
 nyq = 0.5 * 100
 low = 10 / nyq
-b, a = scipy.signal.butter(2, low, btype='low')
-y = scipy.signal.lfilter(b, a, y)
-ax1=fig1.add_subplot(111)
+b, a = signal.butter(2, low, btype='low')
+y = signal.lfilter(b, a, y)
+ax1=fig1.add_subplot(122)
+ax1.set_ylim(-2,0)
+ax1.set_ylabel('Accel x')
+ax1.set_xlabel('Time')
 ax1.plot(x,y)#plt filtered data
 
 yf = scipy.fftpack.fft(y)
 xf = np.linspace(0.0, 1.0/(2.0*T), N/2)
-ax2=fig2.add_subplot(111)
+ax2=fig2.add_subplot(122)
+ax2.set_ylabel('Amplitude')
+ax2.set_xlabel('Frequency')
 ax2.plot(xf[1:], 2.0/N * np.abs(yf[:N//2][1:]))
 
 

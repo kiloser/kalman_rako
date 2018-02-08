@@ -55,7 +55,9 @@ ax1.legend('mag')
 for mag in maglist:
     ax1.scatter(mag[0], mag[1], mag[2],c='b',marker='.')
 #    plt.pause(0.01)
-
+ax1.set_xlabel('Mag X')
+ax1.set_ylabel('Mag Y')
+ax1.set_zlabel('Mag Z')
 magarray=np.array(maglist)
 p0=[0,0,0,0,0,0,0,0,0]
 magx=magarray[:,0]
@@ -69,5 +71,8 @@ for i in range(0,len(magx)):
     Magm=np.matrix([magx[i],magy[i],magz[i]]).T
     Magr=K*(Magm-B)
     ax2.scatter(Magr[0], Magr[1], Magr[2],marker='.',c='b') 
+ax2.set_xlabel('Mag X')
+ax2.set_ylabel('Mag Y')
+ax2.set_zlabel('Mag Z')
 plt.show()
 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sympy 
-import scipy.linalg as linalg
 from sympy import symbols,Matrix
 from filterpy.common import dot3
 import numpy as np
@@ -118,7 +117,11 @@ class RAKOEKF():
         dt=symbols('dt')
         thesubs={dt:self.dt_uwb}
         F_nummat = array(self.F.evalf(subs=thesubs)).astype(float)
-        Xpre=self.XLastEsti
+        '''
+        这里需要进一步的分析，是重新归零初值还是继承上一时刻的值
+        '''
+        Xpre=array([[0,0,0,0,0,0]]).T
+        #Xpre=self.XLastEsti
         Xpre=dot(F_nummat,Xpre)
         
         thesubs={dt:self.dt_uwb}
@@ -150,11 +153,36 @@ Anchor_pos=array([[0,0],
                  [10,10]])
 plt.ion() 
 fig1=plt.figure(1)
-ax=fig1.add_subplot(111)
-ax.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',linewidths=0.2)
+ax1=fig1.add_subplot(111)
+ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',linewidths=0.2)
+fig2=plt.figure(2)
+ax2=fig1.add_subplot(111)
+ax2.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',linewidths=0.2)
+
+
 tagposlist=[]
-for i in np.linspace(-10,20,6):
-    for j in np.linspace(-10,20,6):
+for i in np.linspace(-30,30,601):
+    tagposlist.append([i,5])
+np.array(tagposlist)
+acceldata=np.zeros((601,3))
+for i in range(3):
+    acceldata[:,i]=acceldata[:,i]+np.random.normal(0,0.2,601)
+uwbdis_data=np.zeros((601,Anchor_num))
+realdis_data=np.zeros((601,Anchor_num))
+for tagpos in tagposlist:
+    realdis=np.zeros(Anchor_num)
+    tgpos=tagpos
+    for i in range(Anchor_num):
+        realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+        realdis_data[:,i]=realdis[i]
+        uwbdis_data[:,i]=realdis[i]+np.random.normal(0,0.2,1)
+        
+        
+        
+input('put anything is ok\n')
+tagposlist=[]
+for i in np.linspace(-10,20,2):
+    for j in np.linspace(-10,20,2):
         tagposlist.append([i,j])
 
 for tagpos in tagposlist:
@@ -192,7 +220,7 @@ for tagpos in tagposlist:
         temp=ekf.LSQ_TOA(data)
         plot_x.append(temp[0])
         plot_y.append(temp[1])
-    ax.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
+    ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
     plt.show()
     #============================================================    
     #plot the kalman estimate resaults
@@ -204,8 +232,8 @@ for tagpos in tagposlist:
         temp=ekf.ekffilter(acceldata[100*i:100*(i+1),:],uwbdis_data[i])
         plot_x2.append(temp[0])
         plot_y2.append(temp[1])
-    ax.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
-    ax.scatter(tgpos[0],tgpos[1],marker='+',c='r',linewidths=0.05)
+    ax1.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
+    ax1.scatter(tgpos[0],tgpos[1],marker='+',c='r',linewidths=0.05)
     print(tgpos)
 #std1=np.std(np.array(plot_x).astype(np.float64))
 #std2=np.std(np.array(plot_y).astype(np.float64))

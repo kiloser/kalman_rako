@@ -1,48 +1,57 @@
 # -*- coding: utf-8 -*-
-import sympy
-import numpy as np
-import scipy
-#def resifun_init(ac_pos,acnum):
-#    x,y=sympy.symbols('x,y')
-#    f=0
-#    def dis(acnum):
-#        n=1
-#        while n<acnum:
-#            yield sympy.symbols('dis'+str(n))
-#            n+=1
-#    dwdis=list(dis(acnum))
-#    for i in range(acnum):
-#        pos=ac_pos[i]
-#        f+=dwdis[i]-sympy.sqrt((x-pos[0])**2+(y-pos[1])**2)
-#    def residualfun(p,dw_dis):
-#        posx,posy=p
-#        residual=f.evalf(subs={x:posx,y:posy})
-#        return residual
-#    return residualfun
-#
-#ac_pos=np.array([[1,2],
-#                 [3,4],
-#                 [0,0]])
-#residualfun=resifun_init(ac_pos,3)
+class father():
+    def __init__(self,func):
+        self.f=func
+        self.K=100
+    def runf(self,val):
+        self.f(val)
+class child(father):
+    def __init__(self):
+        super(child,self).__init__(self.func)
+        self.fuck=2
+        self.K=20
+    def func(self,val):
+        print('the fuck is '+str(self.fuck))
+        print('the val is '+str(val))
+        
+te=child()
+te.runf(223)
 
-acnum=3
-pos=np.array([[0,12],
-              [5,6],
-              [0,0]])
-A=np.zeros((2,2))
-A[0]=pos[1]-pos[0]
-A[1]=pos[2]-pos[0]
-B=np.zeros((2,1))
-realdis=[0.0,0.0,0.0]
-realACdis=[0.0,0.0,0.0]
-realpos=[3,7]
-for i in range(3):
-    realdis[i]=np.sqrt((realpos[0]-pos[i][0])**2+(realpos[1]-pos[i][1])**2)
-for i in range(3):
-    realACdis[i]=np.sqrt((pos[i][0]-pos[0][0])**2+(pos[i][1]-pos[0][1])**2)
-refdis=realdis[0]
-B[0]=(refdis**2+realACdis[1]**2-realdis[1]**2)/2
-B[1]=(refdis**2+realACdis[2]**2-realdis[2]**2)/2
-A=np.mat(A)
-B=np.mat(B)
-solvepos=((A.T*A).I*A.T*B).T+pos[0]
+
+'''
+import scipy
+
+#chan 算法， 基站个数5个或者更多
+def doChanForMore(D):
+    c = 3e8
+    #所有的基站坐标
+    M = D[:,:3]
+    #[-xn0, -yn0, -zn0, -Rn0]
+    Ga = D[1:] - D[0]
+    num = len(M)
+    Q = scipy.matrix((0.5 * scipy.identity(num - 1)) + 0.5)
+
+    E = -Ga.T * Q.I
+    Fi = (E * -Ga).I
+
+    R = Ga[:,3]
+    R_squared = scipy.matrix(R.A * R.A)
+
+    K = scipy.zeros((num,1))
+    for n in range(num):
+        K[n] = M[n] * M[n].T
+
+    h = (R_squared - K[1:] + K[0]) / 2
+    first_est = (Fi * E * h).A.squeeze()
+    R0 = first_est[3]
+
+    B = scipy.matrix(scipy.identity(num - 1) * (R.A + R0))
+    Y = B * Q * B
+
+    E = -Ga.T * (Y * (c ** 2)).I
+    Fi = (E * -Ga).I
+
+    second_est = (Fi * E * h).A.squeeze()
+
+    return [second_est[:3], R0]
+'''
