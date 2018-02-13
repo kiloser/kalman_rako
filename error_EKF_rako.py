@@ -198,13 +198,12 @@ class RAKOEKF():
         return tag_pos
              
 
-dt_IMU=0.001
+dt_IMU=0.01
 dt_UBW=1
-Anchor_num=4
+Anchor_num=3
 Anchor_pos=array([[0,0],
                  [10,0],
-                 [0,10],
-                 [10,10]])
+                 [0,10]])
 plt.ion() 
 
 std_a=0.02
@@ -479,8 +478,8 @@ if idx=='5':
     ax1=fig1.add_subplot(111)
     ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)  
     tagposlist=[]
-    for i in np.linspace(-10,20,1):
-        for j in np.linspace(-10,20,1):
+    for i in np.linspace(-10,20,5):
+        for j in np.linspace(-10,20,5):
             tagposlist.append([i,j])
     
     for tagpos in tagposlist:
