@@ -5,6 +5,32 @@ from filterpy.common import dot3
 import numpy as np
 from numpy import dot, array
 import matplotlib.pyplot as plt
+import math
+import statsmodels.api as sm
+def cdfsolve(p,cdffun):
+    initx=0
+    while cdffun(initx)<p:
+        initx+=0.005
+    return initx        
+def get_TOAGDOP(pos,acpos,acnum):
+    cx=[]
+    cy=[]
+    for i in range(acnum):
+        r=np.sqrt((acpos[i,0]-pos[0])**2+(acpos[i,1]-pos[1])**2)
+        cx.append((pos[0]-acpos[i,0])/r)
+        cy.append((pos[1]-acpos[i,1])/r)
+    C=np.zeros((acnum,2))
+    for i in range(acnum):
+        C[i,0]=cx[i] 
+        C[i,1]=cy[i]
+    C=np.mat(C)    
+    B=(C.T*C).I*C.T
+    sigma=0.1**2
+    P=np.eye(acnum)*sigma
+#    P=np.eye(acnum-1)*sigma
+    GDOP=B*np.mat(P)*B.T
+    return np.sqrt(np.trace(GDOP))
+
 def imutrace(initstat,accelarray):
     '''
     用来在只用加速度数据的情况下绘制路径
@@ -200,10 +226,11 @@ class RAKOEKF():
 
 dt_IMU=0.01
 dt_UBW=1
-Anchor_num=3
+Anchor_num=4
 Anchor_pos=array([[0,0],
                  [10,0],
-                 [0,10]])
+                 [0,10],
+                 [10,10]])
 plt.ion() 
 
 std_a=0.02
@@ -265,7 +292,7 @@ if idx=='1':
         temp=ekf.LSQ_TOA(data)
         plot_x.append(temp[0])
         plot_y.append(temp[1])
-    ax4.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
+    ax4.plot(plot_x,plot_y,linewidth=1,c='blue',label='TOA estimated position')
     plt.show()   
     
     plot_x2=[]
@@ -274,19 +301,31 @@ if idx=='1':
         temp=ekf.ekffilter(acceldata[100*i:100*(i+1),:],uwbdis_data[i])
         plot_x2.append(temp[0])
         plot_y2.append(temp[1])
-    ax4.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
-    ax4.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+    ax4.plot(plot_x2,plot_y2,linewidth=1,c='limegreen',label='DF estimated position')
+    ax4.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
     
-    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
-    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
-    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
-    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
-    print('变加速度运动')
-    print('rawdata x std:'+str(std1))
-    print('rawdata y std:'+str(std2))
-    print('kalman x std:'+str(std3))
-    print('kalman y std:'+str(std4))        
+    ax4.set_title('acceleration motion analysis')
+    ax4.set_xlabel('x-axis(m)')
+    ax4.set_ylabel('y-axis(m)')
+    ax4.legend(loc='upper left')    
+
     
+    plot_x=np.array(plot_x,dtype='float')
+    plot_y=np.array(plot_y,dtype='float')
+    plot_x2=np.array(plot_x2,dtype='float')
+    plot_y2=np.array(plot_y2,dtype='float')
+    tagposlist=np.array(tagposlist,dtype='float')
+    
+#    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    print('变加速度运动')
+#    print('rawdata x std:'+str(std1))
+#    print('rawdata y std:'+str(std2))
+#    print('kalman x std:'+str(std3))
+#    print('kalman y std:'+str(std4))        
+#    
 
 '''
 圆周运动
@@ -331,27 +370,75 @@ if idx=='2':
         temp=ekf.LSQ_TOA(data)
         plot_x.append(temp[0])
         plot_y.append(temp[1])
-    ax5.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
+    ax5.plot(plot_x,plot_y,linewidth=1,c='blue',label='TOA estimated position')
     plt.show()   
     
     plot_x2=[]
     plot_y2=[]
+    GDOPvalue=[]
     for i in range(len(tagposlist)):
         temp=ekf.ekffilter(acceldata[100*i:100*(i+1),:],uwbdis_data[i])
         plot_x2.append(temp[0])
         plot_y2.append(temp[1])
-    ax5.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
-    ax5.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+        GDOPvalue.append(get_TOAGDOP(tagposlist[i],Anchor_pos,Anchor_num))
+    ax5.plot(plot_x2,plot_y2,linewidth=1,c='limegreen',label='DF estimated position')
+    ax5.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
     
-    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
-    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
-    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
-    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
-    print('圆周运动')
-    print('rawdata x std:'+str(std1))
-    print('rawdata y std:'+str(std2))
-    print('kalman x std:'+str(std3))
-    print('kalman y std:'+str(std4))   
+    ax5.set_title('circular motion analysis')
+    ax5.set_xlabel('x-axis(m)')
+    ax5.set_ylabel('y-axis(m)')
+    ax5.legend(loc='upper left')  
+    
+    plot_x=np.array(plot_x,dtype='float')
+    plot_y=np.array(plot_y,dtype='float')
+    plot_x2=np.array(plot_x2,dtype='float')
+    plot_y2=np.array(plot_y2,dtype='float')
+    tagposlist=np.array(tagposlist,dtype='float')
+    
+    
+    toa_xerr=plot_x-tagposlist[:,0]
+    toa_yerr=plot_y-tagposlist[:,1]
+    df_xerr=plot_x2-tagposlist[:,0]
+    df_yerr=plot_y2-tagposlist[:,1]
+    toa_rerr=np.sqrt(toa_xerr**2+toa_yerr**2)
+    df_rerr=np.sqrt(df_xerr**2+df_yerr**2)
+    
+    
+    fig1=plt.figure(1)
+    ax1=fig1.add_subplot(111)
+    ax1.plot(GDOPvalue,toa_xerr,label='toa_xerr')
+    ax1.plot(GDOPvalue,df_xerr,label='df_xerr')
+    ax1.set_title('circular motion x-axis error')
+    ax1.set_xlabel('GDOP value')
+    ax1.set_ylabel('x error')
+    ax1.legend(loc='upper left')
+    
+    fig3=plt.figure(3)
+    ax3=fig3.add_subplot(111)
+    ax3.plot(GDOPvalue,toa_yerr,label='toa_yerr')
+    ax3.plot(GDOPvalue,df_yerr,label='df_yerr')
+    ax3.set_title('circular motion y-axis error')
+    ax3.set_xlabel('GDOP value')
+    ax3.set_ylabel('y error')
+    ax3.legend(loc='upper left')
+    
+    fig4=plt.figure(4)
+    ax4=fig4.add_subplot(111)
+    ax4.plot(GDOPvalue,toa_rerr,label='toa_rerr')
+    ax4.plot(GDOPvalue,df_rerr,label='df_rerr')
+    ax4.set_title('circular motion distance error')
+    ax4.set_xlabel('GDOP value')
+    ax4.set_ylabel('distance error')
+    ax4.legend(loc='upper left')    
+#    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    print('圆周运动')
+#    print('rawdata x std:'+str(std1))
+#    print('rawdata y std:'+str(std2))
+#    print('kalman x std:'+str(std3))
+#    print('kalman y std:'+str(std4))   
 '''
 水平无加速度运动
 '''
@@ -359,10 +446,10 @@ if idx=='3':
     
     fig2=plt.figure(2)
     ax2=fig2.add_subplot(111)
-    ax2.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
+    ax2.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=10)
     tagposlist=[]
-    tagpoint_len=200
-    for i in np.linspace(-30,30,tagpoint_len,endpoint=False):
+    tagpoint_len=400
+    for i in np.linspace(-60,60,tagpoint_len,endpoint=False):
         tagposlist.append([i,5])
     np.array(tagposlist)
     acceldata=np.zeros((tagpoint_len*100,2))
@@ -382,6 +469,8 @@ if idx=='3':
     ekf=RAKOEKF(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)
     ekf.P = np.diag([.1, .1, .1, .1, .1, .1])#初始化协方差
     
+    GDOPvalue=[]
+    
     plot_x=[]
     plot_y=[]
     #ax.set_xlim(-1,11)
@@ -390,8 +479,7 @@ if idx=='3':
         temp=ekf.LSQ_TOA(data)
         plot_x.append(temp[0])
         plot_y.append(temp[1])
-    ax2.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
-    ax2.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+    ax2.plot(plot_x,plot_y,c='blue',linewidth=1,label='TOA estimated position')
     plt.show()   
     
     plot_x2=[]
@@ -400,17 +488,66 @@ if idx=='3':
         temp=ekf.ekffilter(acceldata[100*i:100*(i+1),:],uwbdis_data[i])
         plot_x2.append(temp[0])
         plot_y2.append(temp[1])
-    ax2.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
+        GDOPvalue.append(get_TOAGDOP(tagposlist[i],Anchor_pos,Anchor_num))
+        
+        
+    ax2.plot(plot_x2,plot_y2,c='limegreen',linewidth=1,label='DF estimated position')
+    plot_x=np.array(plot_x,dtype='float')
+    plot_y=np.array(plot_y,dtype='float')
+    plot_x2=np.array(plot_x2,dtype='float')
+    plot_y2=np.array(plot_y2,dtype='float')
+    tagposlist=np.array(tagposlist,dtype='float')
     
-    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
-    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
-    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
-    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
-    print('水平无加速度运动')
-    print('rawdata x std:'+str(std1))
-    print('rawdata y std:'+str(std2))
-    print('kalman x std:'+str(std3))
-    print('kalman y std:'+str(std4))
+    toa_xerr=plot_x-tagposlist[:,0]
+    toa_yerr=plot_y-tagposlist[:,1]
+    df_xerr=plot_x2-tagposlist[:,0]
+    df_yerr=plot_y2-tagposlist[:,1]
+    toa_rerr=np.sqrt(toa_xerr**2+toa_yerr**2)
+    df_rerr=np.sqrt(df_xerr**2+df_yerr**2)
+    
+    ax2.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
+    ax2.set_position([0.1,0.1,0.8,0.7])
+    ax2.set_title('uniform rectilinear motion analysis')
+    ax2.set_xlabel('x-axis(m)')
+    ax2.set_ylabel('y-axis(m)')
+    fig2.legend(loc='upper left')
+    
+    fig1=plt.figure(1)
+    ax1=fig1.add_subplot(111)
+    ax1.plot(GDOPvalue,toa_xerr,label='toa_xerr')
+    ax1.plot(GDOPvalue,df_xerr,label='df_xerr')
+    ax1.set_title('uniform rectilinear motion x-axis error')
+    ax1.set_xlabel('GDOP value')
+    ax1.set_ylabel('x error')
+    ax1.legend(loc='upper left')
+    
+    fig3=plt.figure(3)
+    ax3=fig3.add_subplot(111)
+    ax3.plot(GDOPvalue,toa_yerr,label='toa_yerr')
+    ax3.plot(GDOPvalue,df_yerr,label='df_yerr')
+    ax3.set_title('uniform rectilinear motion y-axis error')
+    ax3.set_xlabel('GDOP value')
+    ax3.set_ylabel('y error')
+    ax3.legend(loc='upper left')
+    
+    fig4=plt.figure(4)
+    ax4=fig4.add_subplot(111)
+    ax4.plot(GDOPvalue,toa_rerr,label='toa_rerr')
+    ax4.plot(GDOPvalue,df_rerr,label='df_rerr')
+    ax4.set_title('uniform rectilinear motion distance error')
+    ax4.set_xlabel('GDOP value')
+    ax4.set_ylabel('distance error')
+    ax4.legend(loc='upper left')
+    
+#    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    print('水平无加速度运动')
+#    print('rawdata x std:'+str(std1))
+#    print('rawdata y std:'+str(std2))
+#    print('kalman x std:'+str(std3))
+#    print('kalman y std:'+str(std4))
 '''
 垂直无加速度运动
 '''
@@ -474,12 +611,28 @@ if idx=='4':
 静止运动
 '''
 if idx=='5':
+    Anchor_num=4
+    Anchor_pos=array([[5,5],
+                      [-5,5],
+                      [5,-5],
+                      [-5,-5]])
+    samplecnt=50
     fig1=plt.figure(1)
     ax1=fig1.add_subplot(111)
-    ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)  
+    ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=8)  
     tagposlist=[]
-    for i in np.linspace(-10,20,5):
-        for j in np.linspace(-10,20,5):
+    
+    toa_xstderr=[]
+    toa_ystderr=[]
+    toa_meanerr=[]
+    df_xstderr=[]
+    df_ystderr=[]
+    df_meanerr=[]
+    GDOPvalue=[]
+    toaCEP=[]
+    dfCEP=[]
+    for i in np.linspace(0,50,100,endpoint=False):
+        for j in np.linspace(0,50,1,endpoint=False):
             tagposlist.append([i,j])
     
     for tagpos in tagposlist:
@@ -488,13 +641,13 @@ if idx=='5':
         #============================================================
         tgpos=tagpos
         realdis=np.zeros(Anchor_num)
-        uwbdis_data=np.zeros((50,Anchor_num))
-        acceldata=np.zeros((50*100,2))
+        uwbdis_data=np.zeros((samplecnt,Anchor_num))
+        acceldata=np.zeros((samplecnt*100,2))
         for i in range(Anchor_num):
             realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)
-            uwbdis_data[:,i]=realdis[i]+np.random.normal(0,std_r,50)
+            uwbdis_data[:,i]=realdis[i]+np.random.normal(0,std_r,samplecnt)
         for i in range(2):
-            acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,5000)
+            acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,samplecnt*100)
         #============================================================    
         #end
         #============================================================
@@ -515,7 +668,7 @@ if idx=='5':
             temp=ekf.LSQ_TOA(data)
             plot_x.append(temp[0])
             plot_y.append(temp[1])
-        ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
+        fig1_line1=ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)
         plt.show()
         #============================================================    
         #plot the kalman estimate resaults
@@ -523,14 +676,88 @@ if idx=='5':
         
         plot_x2=[]
         plot_y2=[]
-        for i in range(50):
+        for i in range(samplecnt):
             temp=ekf.ekffilter(acceldata[100*i:100*(i+1),:],uwbdis_data[i])
             plot_x2.append(temp[0])
             plot_y2.append(temp[1])
-        ax1.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
-        ax1.scatter(tgpos[0],tgpos[1],marker='+',c='r',linewidths=0.05)
-    
+        fig1_line2=ax1.scatter(plot_x2,plot_y2,marker='o',c='limegreen',s=3)
+        fig1_line3=ax1.scatter(tgpos[0],tgpos[1],marker='+',c='r',linewidths=0.05)
+        
+        plot_x=np.array(plot_x,dtype='float')
+        plot_y=np.array(plot_y,dtype='float')
+        plot_x2=np.array(plot_x2,dtype='float')
+        plot_y2=np.array(plot_y2,dtype='float')
+        
+        plot_x_mean=np.mean(plot_x)
+        plot_y_mean=np.mean(plot_y)
+        toa_meanerr.append(math.sqrt((plot_x_mean-tgpos[0])**2+(plot_y_mean-tgpos[1])**2))
+        toa_rerr=np.sqrt((plot_x-tgpos[0])**2+(plot_y-tgpos[1])**2)
+        toa_xstderr.append(np.std(plot_x))
+        toa_ystderr.append(np.std(plot_y))
+        ecdf = sm.distributions.ECDF(toa_rerr)
+        toaCEP.append(cdfsolve(0.8,ecdf))
+        
+        plot_x2_mean=np.mean(plot_x2)
+        plot_y2_mean=np.mean(plot_y2)
+        df_meanerr.append(math.sqrt((plot_x2_mean-tgpos[0])**2+(plot_y2_mean-tgpos[1])**2))
+        df_rerr=np.sqrt((plot_x2-tgpos[0])**2+(plot_y2-tgpos[1])**2)
+        df_xstderr.append(np.std(plot_x2))#I don't know why, but I have to do this shit.
+        df_ystderr.append(np.std(plot_y2))
+        ecdf = sm.distributions.ECDF(df_rerr)
+        dfCEP.append(cdfsolve(0.8,ecdf))
+        
+        GDOPvalue.append(get_TOAGDOP(tgpos,Anchor_pos,Anchor_num))
+        
         print(tgpos)
+    labels=['TOA estimated position','DF estimated position','real position']
+    handles=[fig1_line1,fig1_line2,fig1_line3]
+    ax1.set_title("fixed position analysis")        
+    fig1.legend(handles,labels,loc="upper left")
+    ax1.set_xlabel('x-axis(m)')
+    ax1.set_ylabel('y-axis(m)')
+    ax1.set_position([0.1,0.1,0.8,0.7])
+    
+    fig2=plt.figure(2)
+    ax2=fig2.add_subplot(111)
+    ax2.plot(GDOPvalue,toa_xstderr,label='toa_xstderr')
+    ax2.plot(GDOPvalue,df_xstderr,label='df_xstderr')
+    ax2.set_title("x-axis standard error")        
+    ax2.set_xlabel('GDOP value')
+    ax2.set_ylabel('standerd error')
+    ax2.set_position([0.1,0.1,0.8,0.7])
+    ax2.legend(loc="upper left")
+    
+    fig3=plt.figure(3)
+    ax3=fig3.add_subplot(111)
+    ax3.plot(GDOPvalue,toa_ystderr,label='toa_ystderr')
+    ax3.plot(GDOPvalue,df_ystderr,label='df_ystderr')
+    ax3.set_title("y-axis standard error")
+    ax3.set_xlabel('GDOP value')
+    ax3.set_ylabel('standerd error')
+    ax3.set_position([0.1,0.1,0.8,0.7])
+    ax3.legend(loc="upper left")
+    
+    fig4=plt.figure(4)
+    ax4=fig4.add_subplot(111)
+    ax4.plot(GDOPvalue,toa_meanerr,label='toa_meanerr')
+    ax4.plot(GDOPvalue,df_meanerr,label='df_meanerr')
+    ax4.set_title("mean error")
+    ax4.set_xlabel('GDOP value')
+    ax4.set_ylabel('mean error')
+    ax4.set_position([0.1,0.1,0.8,0.7])
+    ax4.legend(loc="upper left")
+    
+    fig5=plt.figure(5)
+    ax5=fig5.add_subplot(111)
+    ax5.plot(GDOPvalue,toaCEP,label='toaCEP80%')
+    ax5.plot(GDOPvalue,dfCEP,label='dfCEP80%')
+    ax5.set_title("80% CEP analysis")
+    ax5.set_xlabel('GDOP value')
+    ax5.set_ylabel('80% CEP radius')
+    ax5.set_position([0.1,0.1,0.8,0.7])
+    ax5.legend(loc="upper left")
+#    ax1.set_xlim([-15,35])
+#    ax1.set_ylim([-15,15])
     #std1=np.std(np.array(plot_x).astype(np.float64))
     #std2=np.std(np.array(plot_y).astype(np.float64))
     #std3=np.std(np.array(plot_x2).astype(np.float64))

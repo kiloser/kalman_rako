@@ -211,6 +211,9 @@ class UKF_rako(UKF):
             dis_imu[:,i]=dimu-dimu[i]
         diff_mat=dis_diff-dis_imu
         errsum=[]
+        '''
+        针对误差最大的那个数据我们丢弃
+        '''
         for row in diff_mat:
             errsum.append(sum(map(abs,row)))
         idx=np.argsort(errsum)
@@ -218,6 +221,7 @@ class UKF_rako(UKF):
 #        diff_mat[:,idx[0]]=diff_mat[:,idx[0]]/2
         diff_mat[:,idx[0]]=0
         diff_mat[idx[0],:]=0
+        
 #        diff_mat=diff_mat/2
         for i in range(0,self.acnum-1):
             for j in range(i+1,self.acnum):
@@ -233,8 +237,9 @@ class UKF_rako(UKF):
             
             #计算位置，使用TOA
             tag_pos=self.chan_algorithm(arrive_time)
+            tag_pos=np.array(tag_pos).ravel()
             self.StatusLast[0]=tag_pos[0]
-            self.StatusLast[0]=tag_pos[1]
+            self.StatusLast[1]=tag_pos[1]
             return tag_pos
         tag_pos_imu=self.imupos(accel_array)
         Zobs=self.Z_observe(arrive_time,tag_pos_imu)
@@ -305,12 +310,8 @@ def tracefunc(laststatus,accel_array):
     
 dt_IMU=0.01
 dt_UBW=1
-Anchor_num=5
-Anchor_pos=np.array([[0,0],
-                     [10,0],
-                     [0,10],
-                     [10,10],
-                     [5,6]])
+
+
 
 std_a=0.02
 std_r=0.1
@@ -324,6 +325,12 @@ idx=input("想进行哪个仿真？\n\
       5.定点分析\n")
 
 if idx=='1':
+    Anchor_num=5
+    Anchor_pos=np.array([[0,-20],
+                     [100,-20],
+                     [0,80],
+                     [100,80],
+                     [50,40]])
     fig4=plt.figure(4)
     ax4=fig4.add_subplot(111)
     ax4.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
@@ -344,11 +351,220 @@ if idx=='1':
     tagposlist=imutrace(initstat,acceldata)
     tagpoint_len=len(tagposlist)
 
+    for i in range(2):
+        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
+        
+    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
+    realdis_data=np.zeros((tagpoint_len,Anchor_num))
+    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
+    for j in range(len(tagposlist)):
+        realdis=np.zeros(Anchor_num)
+        tgpos=tagposlist[j]
+        for i in range(Anchor_num):
+            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+            realdis_data[j,i]=realdis[i]
+            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
+            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
+            
+    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)
+      
+    ax4.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+    plot_x=[]
+    plot_y=[]
+    
+    plt.ion()
+    #ax.set_xlim(-1,11)
+    #ax.set_ylim(-1,11)
+    for data in arrivetime_data:
+        temp=ukf.chan_algorithm(data)
+        temp=np.array(temp).ravel()
+        plot_x.append(temp[0])
+        plot_y.append(temp[1])
+        ax4.scatter(temp[0],temp[1],marker='^',c='blue',s=3)
+#            plt.pause(0.001)
+#        ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)    
+    plot_x2=[]
+    plot_y2=[]
+    for i in range(len(tagposlist)):
+        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
+        plot_x2.append(temp[0])
+        plot_y2.append(temp[1])
+    ax4.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)       
+    
 
-
+if idx=='2':
+    Anchor_num=5
+    Anchor_pos=np.array([[0,0],
+                     [20,0],
+                     [0,20],
+                     [20,20],
+                     [15,6]])
+    fig5=plt.figure(5)
+    ax5=fig5.add_subplot(111)
+    ax5.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)        
+    tagposlist=[]
+    tagpoint_len=200
+    a=0.025
+    v=a*tagpoint_len/(2*np.pi)
+    t=np.linspace(0,2*np.pi,tagpoint_len*100)
+    ax=a*np.sin(t)
+    ay=a*np.cos(t)
+    acceldata=np.zeros((tagpoint_len*100,2))
+    acceldata[:,0]=ax
+    acceldata[:,1]=ay
+    initstat=[-12,0]+[-v,0]
+    tagposlist=imutrace(initstat,acceldata)
+    ax5.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+    
+    for i in range(2):
+        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
+    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
+    realdis_data=np.zeros((tagpoint_len,Anchor_num))
+    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
+    for j in range(len(tagposlist)):
+        realdis=np.zeros(Anchor_num)
+        tgpos=tagposlist[j]
+        for i in range(Anchor_num):
+            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+            realdis_data[j,i]=realdis[i]
+            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
+            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
+            
+    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)        
+    plot_x=[]
+    plot_y=[]
+    
+    plt.ion()
+    #ax.set_xlim(-1,11)
+    #ax.set_ylim(-1,11)
+    for data in arrivetime_data:
+        temp=ukf.chan_algorithm(data)
+        temp=np.array(temp).ravel()
+        plot_x.append(temp[0])
+        plot_y.append(temp[1])
+        ax5.scatter(temp[0],temp[1],marker='^',c='blue',s=3)
+#            plt.pause(0.001)
+#        ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)    
+    plot_x2=[]
+    plot_y2=[]
+    for i in range(len(tagposlist)):
+        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
+        plot_x2.append(temp[0])
+        plot_y2.append(temp[1])
+    ax5.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)       
+    
+Anchor_num=5
+Anchor_pos=np.array([[0,0],
+                     [10,0],
+                     [0,10],
+                     [10,10],
+                     [3,7]])       
+'''
+水平无加速度运动
+'''            
+if idx=='3':
+    
+    fig2=plt.figure(2)
+    ax2=fig2.add_subplot(111)
+    ax2.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
+    tagposlist=[]
+    tagpoint_len=200
+    for i in np.linspace(-30,30,tagpoint_len,endpoint=False):
+        tagposlist.append([i,5])
+    np.array(tagposlist)
+    acceldata=np.zeros((tagpoint_len*100,2))
+    
+    for i in range(2):
+        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
+    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
+    realdis_data=np.zeros((tagpoint_len,Anchor_num))
+    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
+    for j in range(len(tagposlist)):
+        realdis=np.zeros(Anchor_num)
+        tgpos=tagposlist[j]
+        for i in range(Anchor_num):
+            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+            realdis_data[j,i]=realdis[i]
+            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
+            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
+    ax2.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)        
+    plot_x=[]
+    plot_y=[]
+    plot_x2=[]
+    plot_y2=[]    
+    plt.ion()
+    #ax.set_xlim(-1,11)
+    #ax.set_ylim(-1,11)
+    for i in range(len(tagposlist)):
+        data=arrivetime_data[i]
+        temp=ukf.chan_algorithm(data)
+        temp=np.array(temp).ravel()
+        plot_x.append(temp[0])
+        plot_y.append(temp[1])
+        ax2.scatter(temp[0],temp[1],marker='^',c='blue',s=3)
+        
+        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
+        plot_x2.append(temp[0])
+        plot_y2.append(temp[1])
+        ax2.scatter(temp[0],temp[1],marker='o',c='green',s=3)
+#        plt.pause(0.1)
+#        ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)    
+                
+'''
+垂直无加速度运动
+'''
+if idx=='4':
+    fig3=plt.figure(3)
+    ax3=fig3.add_subplot(111)
+    ax3.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
+    tagposlist=[]
+    tagpoint_len=200
+    for i in np.linspace(-30,30,tagpoint_len,endpoint=False):
+        tagposlist.append([5,i])
+    np.array(tagposlist)
+    acceldata=np.zeros((tagpoint_len*100,2))
+    for i in range(2):
+        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
+    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
+    realdis_data=np.zeros((tagpoint_len,Anchor_num))
+    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
+    for j in range(len(tagposlist)):
+        realdis=np.zeros(Anchor_num)
+        tgpos=tagposlist[j]
+        for i in range(Anchor_num):
+            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+            realdis_data[j,i]=realdis[i]
+            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
+            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
+    ax3.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3)
+    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)              
+    plot_x=[]
+    plot_y=[]
+    
+    plt.ion()
+    #ax.set_xlim(-1,11)
+    #ax.set_ylim(-1,11)
+    for data in arrivetime_data:
+        temp=ukf.chan_algorithm(data)
+        temp=np.array(temp).ravel()
+        plot_x.append(temp[0])
+        plot_y.append(temp[1])
+        ax3.scatter(temp[0],temp[1],marker='^',c='blue',s=3)
+#            plt.pause(0.001)
+#        ax1.scatter(plot_x,plot_y,marker='^',c='blue',s=3)    
+    plot_x2=[]
+    plot_y2=[]
+    for i in range(len(tagposlist)):
+        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
+        plot_x2.append(temp[0])
+        plot_y2.append(temp[1])
+    ax3.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)    
+    
 '''
 静止运动
 '''
+
 if idx=='5':
     fig1=plt.figure(1)
     ax1=fig1.add_subplot(111)
@@ -408,7 +624,7 @@ if idx=='5':
             temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
             plot_x2.append(temp[0])
             plot_y2.append(temp[1])
-            ax1.scatter(temp[0],temp[1],marker='o',c='black',s=3)
+            ax1.scatter(temp[0],temp[1],marker='o',c='green',s=3)
 #            plt.pause(0.001)
 #        ax1.scatter(plot_x2,plot_y2,marker='o',c='green',s=3)
         ax1.scatter(tgpos[0],tgpos[1],marker='+',c='r',linewidths=0.05)
