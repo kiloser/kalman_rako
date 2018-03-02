@@ -68,8 +68,13 @@ def get_TDOAGDOP(pos,acpos,acnum):
     cy=[]
     for i in range(acnum):
         r=np.sqrt((acpos[i,0]-pos[0])**2+(acpos[i,1]-pos[1])**2)
-        cx.append((pos[0]-acpos[i,0])/r)
-        cy.append((pos[1]-acpos[i,1])/r)
+        if r==0:
+            cx.append(0)
+            cy.append(0)
+        else:
+            cx.append((pos[0]-acpos[i,0])/r)
+            cy.append((pos[1]-acpos[i,1])/r)
+        
     C=np.zeros((acnum-1,2))
     for i in range(acnum-1):
         
@@ -88,8 +93,12 @@ def get_TOAGDOP(pos,acpos,acnum):
     cy=[]
     for i in range(acnum):
         r=np.sqrt((acpos[i,0]-pos[0])**2+(acpos[i,1]-pos[1])**2)
-        cx.append((pos[0]-acpos[i,0])/r)
-        cy.append((pos[1]-acpos[i,1])/r)
+        if r==0:
+            cx.append(0)
+            cy.append(0)
+        else:
+            cx.append((pos[0]-acpos[i,0])/r)
+            cy.append((pos[1]-acpos[i,1])/r)
     C=np.zeros((acnum,2))
     for i in range(acnum):
         C[i,0]=cx[i] 
@@ -102,11 +111,17 @@ def get_TOAGDOP(pos,acpos,acnum):
     GDOP=B*np.mat(P)*B.T
     return np.sqrt(np.trace(GDOP))
 
-Anchor_num=4
-Anchor_pos=np.array([[5,5],
-                  [-5,5],
-                  [5,-5],
-                  [-5,-5]])
+#Anchor_num=4
+#Anchor_pos=np.array([[5,5],
+#                  [-5,5],
+#                  [5,-5],
+#                  [-5,-5]])
+Anchor_num=5
+Anchor_pos=np.array([[0,0],
+                     [5,0],
+                     [6.54,4.75],
+                     [2.50,7.69],
+                     [-1.54,4.75]])     
 tagposlist=[]
 x=np.linspace(-50,50,50,endpoint=False)
 y=np.linspace(-50,50,50,endpoint=False)
@@ -115,7 +130,7 @@ for i in np.linspace(-50,50,50,endpoint=False):
     for j in np.linspace(-50,50,50,endpoint=False):
         tagposlist.append([i,j])    
 for pos in tagposlist:
-        GDOP.append(get_TOAGDOP(pos,Anchor_pos,Anchor_num))
+        GDOP.append(get_TDOAGDOP(pos,Anchor_pos,Anchor_num))
         
         print(pos)
 fig = plt.figure()
@@ -127,5 +142,5 @@ ax.plot_trisurf(x, y, GDOP,cmap='rainbow')
 line=ax.scatter3D(Anchor_pos[:,0], Anchor_pos[:,1], np.zeros(Anchor_num),color='black')
 ax.set_xlabel('x-axis(m)')
 ax.set_ylabel('y-axis(m)')
-ax.set_zlabel('z-axis(m)')
+ax.set_zlabel('GDOP')
 ax.legend([line],['Anchor position'])

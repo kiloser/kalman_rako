@@ -17,8 +17,12 @@ def get_TOAGDOP(pos,acpos,acnum):
     cy=[]
     for i in range(acnum):
         r=np.sqrt((acpos[i,0]-pos[0])**2+(acpos[i,1]-pos[1])**2)
-        cx.append((pos[0]-acpos[i,0])/r)
-        cy.append((pos[1]-acpos[i,1])/r)
+        if r==0:
+            cx.append(0)
+            cy.append(0)
+        else:
+            cx.append((pos[0]-acpos[i,0])/r)
+            cy.append((pos[1]-acpos[i,1])/r)
     C=np.zeros((acnum,2))
     for i in range(acnum):
         C[i,0]=cx[i] 
@@ -506,11 +510,11 @@ if idx=='3':
     df_rerr=np.sqrt(df_xerr**2+df_yerr**2)
     
     ax2.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
-    ax2.set_position([0.1,0.1,0.8,0.7])
+#    ax2.set_position([0.1,0.1,0.8,0.7])
     ax2.set_title('uniform rectilinear motion analysis')
     ax2.set_xlabel('x-axis(m)')
     ax2.set_ylabel('y-axis(m)')
-    fig2.legend(loc='upper left')
+    ax2.legend(loc='upper left')
     
     fig1=plt.figure(1)
     ax1=fig1.add_subplot(111)
