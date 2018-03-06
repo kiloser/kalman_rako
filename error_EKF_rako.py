@@ -186,6 +186,7 @@ class RAKOEKF():
         for i in range(self.ac_num):
             imudiff2=(tag_pos_imu[0]-self.ac_pos[i,0])**2+(tag_pos_imu[1]-self.ac_pos[i,1])**2
             Zobs[i,0]=uwb_dis[i]-sympy.sqrt(imudiff2)
+#        Zobs[1,0]=0
         return Zobs
     def ekffilter(self,accel_array,uwb_dis):
         if self.StatusLast[0]==0:
@@ -196,6 +197,7 @@ class RAKOEKF():
             self.StatusLast[1,0]=tag_pos[1]
             return tag_pos
         tag_pos_imu=self.imupos(accel_array)
+        
         Zobs=self.Z_observe(uwb_dis,tag_pos_imu)
         
         dt=symbols('dt')
@@ -447,7 +449,13 @@ if idx=='2':
 水平无加速度运动
 '''
 if idx=='3':
-    
+#    Anchor_num=3
+#    Anchor_pos=np.array([[0,0],
+#                         [4.2,0],
+#                         [1.54,7.68]])    
+#    Anchor_pos=np.array([[0,4],
+#                         [8,4],
+#                         [0,6]])    
     fig2=plt.figure(2)
     ax2=fig2.add_subplot(111)
     ax2.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=10)
@@ -479,6 +487,7 @@ if idx=='3':
     plot_y=[]
     #ax.set_xlim(-1,11)
     #ax.set_ylim(-1,11)
+    
     for data in uwbdis_data:
         temp=ekf.LSQ_TOA(data)
         plot_x.append(temp[0])
@@ -615,11 +624,16 @@ if idx=='4':
 静止运动
 '''
 if idx=='5':
+#    Anchor_num=4
+#    Anchor_pos=array([[5,5],
+#                      [-5,5],
+#                      [5,-5],
+#                      [-5,-5]])
     Anchor_num=4
-    Anchor_pos=array([[5,5],
-                      [-5,5],
-                      [5,-5],
-                      [-5,-5]])
+    Anchor_pos=np.array([[0,0],
+                         [4.2,0],
+                         [1.54,7.68],
+                         [6.2,6.84]])
     samplecnt=50
     fig1=plt.figure(1)
     ax1=fig1.add_subplot(111)
@@ -635,10 +649,10 @@ if idx=='5':
     GDOPvalue=[]
     toaCEP=[]
     dfCEP=[]
-    for i in np.linspace(0,50,100,endpoint=False):
-        for j in np.linspace(0,50,1,endpoint=False):
-            tagposlist.append([i,j])
-    
+#    for i in np.linspace(0,50,100,endpoint=False):
+#        for j in np.linspace(0,50,1,endpoint=False):
+#            tagposlist.append([i,j])
+    tagposlist.append([8.42,3.87])    
     for tagpos in tagposlist:
         #============================================================    
         #let's make some fake data
@@ -770,3 +784,88 @@ if idx=='5':
     #print('rawdata y std:'+str(std2))
     #print('kalman x std:'+str(std3))
     #print('kalman y std:'+str(std4))
+    
+if idx=='6':
+    Anchor_num=4
+    Anchor_pos=np.array([[0,0],
+                         [4.2,0],
+                         [1.54,7.68],
+                         [6.2,6.84]])
+    fig4=plt.figure(4)
+    ax4=fig4.add_subplot(111)
+    ax4.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
+    tagpoint_len=161
+    tagposlist=np.array((tagpoint_len,2))
+    acceldata=np.zeros((tagpoint_len*100,2))
+    ac=[1]*100+[0]*3900+[-1]*100
+    ac=np.array(ac)
+    ac=ac*0.5
+    hold=np.zeros((300,2))
+    acceldata[:4100,0]=acceldata[:4100,0]+ac
+    acceldata[4000:8100,1]=acceldata[4000:8100,1]+ac
+    acceldata[8000:12100,0]=acceldata[8000:12100,0]-ac
+    acceldata[12000:16100,1]=acceldata[12000:16100,1]-ac
+    acceldata=np.concatenate((hold,acceldata,hold),axis=0)
+    
+    tagpoint_len+=6
+    initstat=[-1,2.5]+[0,0]
+    tagposlist=imutrace(initstat,acceldata)
+    tagpoint_len=len(tagposlist)
+    
+    for i in range(2):
+        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
+    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
+    realdis_data=np.zeros((tagpoint_len,Anchor_num))
+    for j in range(len(tagposlist)):
+        realdis=np.zeros(Anchor_num)
+        tgpos=tagposlist[j]
+        for i in range(Anchor_num):
+            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+            realdis_data[j,i]=realdis[i]
+            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
+            
+    ekf=RAKOEKF(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)
+    ekf.P = np.diag([.1, .1, .1, .1, .1, .1])#初始化协方差
+    
+    plot_x=[]
+    plot_y=[]
+    #ax.set_xlim(-1,11)
+    #ax.set_ylim(-1,11)
+    for data in uwbdis_data:
+        temp=ekf.LSQ_TOA(data)
+        plot_x.append(temp[0])
+        plot_y.append(temp[1])
+    ax4.plot(plot_x,plot_y,linewidth=1,c='blue',label='TOA estimated position')
+    plt.show()   
+    
+    plot_x2=[]
+    plot_y2=[]
+    for i in range(len(tagposlist)):
+        temp=ekf.ekffilter(acceldata[100*i:100*(i+1),:],uwbdis_data[i])
+        plot_x2.append(temp[0])
+        plot_y2.append(temp[1])
+    ax4.plot(plot_x2,plot_y2,linewidth=1,c='limegreen',label='DF estimated position')
+#    ax4.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
+    
+    ax4.set_title('acceleration motion analysis')
+    ax4.set_xlabel('x-axis(m)')
+    ax4.set_ylabel('y-axis(m)')
+    fig4.legend(loc='upper left')    
+
+    
+    plot_x=np.array(plot_x,dtype='float')
+    plot_y=np.array(plot_y,dtype='float')
+    plot_x2=np.array(plot_x2,dtype='float')
+    plot_y2=np.array(plot_y2,dtype='float')
+    tagposlist=np.array(tagposlist,dtype='float')
+    
+#    std1=np.std(np.array(plot_x).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std2=np.std(np.array(plot_y).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    std3=np.std(np.array(plot_x2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,0])
+#    std4=np.std(np.array(plot_y2).astype(np.float64)-np.array(tagposlist).astype(np.float64)[:,1])
+#    print('变加速度运动')
+#    print('rawdata x std:'+str(std1))
+#    print('rawdata y std:'+str(std2))
+#    print('kalman x std:'+str(std3))
+#    print('kalman y std:'+str(std4))        
+    ax4.set_position([0.1,0.1,0.8,0.7])

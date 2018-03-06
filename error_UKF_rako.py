@@ -719,6 +719,18 @@ if idx=='4':
 '''
 
 if idx=='5':   
+#    Anchor_num=5
+#    Anchor_pos=np.array([[0,0],
+#                         [4.2,0],
+#                         [1.54,7.68],
+#                         [6.2,6.84],
+#                         [-0.25,3.5]])
+    Anchor_num=4
+    Anchor_pos=np.array([[0,0],
+                         [4.2,0],
+                         [1.54,7.68],
+                         [6.2,6.84]])
+            
     fig1=plt.figure(1)
     ax1=fig1.add_subplot(111)
     ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)  
@@ -734,15 +746,15 @@ if idx=='5':
     toaCEP=[]
     dfCEP=[]
     
-#    for i in np.linspace(-15,25,10,endpoint=True):
-#        for j in np.linspace(-15,25,10,endpoint=True):
-#            tagposlist.append([i,j])
-#    
-    x=np.linspace(5,30,200,endpoint=True)
-    y=1.37*(x-5)+7.69
-    tagposlist=[]
-    for i in range(len(x)):
-        tagposlist.append([x[i],y[i]])
+    for i in np.linspace(6.2,25,1,endpoint=True):
+        for j in np.linspace(4.71,25,1,endpoint=True):
+            tagposlist.append([i,j])
+    
+#    x=np.linspace(5,30,200,endpoint=True)
+#    y=1.37*(x-5)+7.69
+#    tagposlist=[]
+#    for i in range(len(x)):
+#        tagposlist.append([x[i],y[i]])
     
     plot_x2s=[]
     plot_y2s=[]
@@ -837,12 +849,13 @@ if idx=='5':
     tagposlist=np.array(tagposlist)
     fig1_line1=ax1.scatter(plot_xs,plot_ys,marker='^',c='blue',s=3)      
     fig1_line2=ax1.scatter(plot_x2s,plot_y2s,marker='o',c='limegreen',s=3)
-    fig1_line3=ax1.scatter(tagposlist[:,0],tagposlist[:,1],marker='+',c='r',s=3)    
+    fig1_line3=ax1.scatter(tagposlist[:,0],tagposlist[:,1],marker='+',c='r',s=6)    
     
     labels=['TDOA estimated position','DF estimated position','real position']
     handles=[fig1_line1,fig1_line2,fig1_line3]
+    ax1.set_position([0.1,0.1,0.8,0.7])
     ax1.set_title("Fixed position analysis")        
-    ax1.legend(handles,labels,loc="upper left")
+    fig1.legend(handles,labels,loc="upper left")
     ax1.set_xlabel('x-axis(m)')
     ax1.set_ylabel('y-axis(m)')
 
@@ -887,4 +900,87 @@ if idx=='5':
     ax5.legend(loc="upper left")
     
 #    
-#        print(tgpos)            
+#        print(tgpos)       
+if idx=='6':
+#    Anchor_num=5
+#    Anchor_pos=np.array([[0,0],
+#                         [5,0],
+#                         [6.54,4.75],
+#                         [2.5,7.69],
+#                         [-1.54,4.75]])
+    Anchor_num=5
+    Anchor_pos=np.array([[0,0],
+                         [4.2,0],
+                         [1.54,7.68],
+                         [6.2,6.84],
+                         [-0.25,3.5]])
+    fig4=plt.figure(4)
+    ax4=fig4.add_subplot(111)
+    ax4.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
+    tagpoint_len=81
+    tagposlist=np.array((tagpoint_len,2))
+    acceldata=np.zeros((tagpoint_len*100,2))
+    ac=[1]*100+[0]*1900+[-1]*100
+    ac=np.array(ac)
+    ac=ac*0.5
+    hold=np.zeros((300,2))
+    acceldata[:2100,0]=acceldata[:2100,0]+ac
+    acceldata[2000:4100,1]=acceldata[2000:4100,1]+ac
+    acceldata[4000:6100,0]=acceldata[4000:6100,0]-ac
+    acceldata[6000:8100,1]=acceldata[6000:8100,1]-ac
+    acceldata=np.concatenate((hold,acceldata,hold),axis=0)
+    
+    tagpoint_len+=6
+    initstat=[-1,2.5]+[0,0]
+    tagposlist=imutrace(initstat,acceldata)
+    tagpoint_len=len(tagposlist)
+
+    for i in range(2):
+        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
+        
+    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
+    realdis_data=np.zeros((tagpoint_len,Anchor_num))
+    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
+    for j in range(len(tagposlist)):
+        realdis=np.zeros(Anchor_num)
+        tgpos=tagposlist[j]
+        for i in range(Anchor_num):
+            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
+            realdis_data[j,i]=realdis[i]
+            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
+            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
+            
+    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)
+      
+    plot_x=[]
+    plot_y=[]
+    
+    plt.ion()
+    #ax.set_xlim(-1,11)
+    #ax.set_ylim(-1,11)
+    for data in arrivetime_data:
+        temp=ukf.chan_algorithm(data)
+        temp=np.array(temp).ravel()
+        plot_x.append(temp[0])
+        plot_y.append(temp[1])
+#        ax4.scatter(temp[0],temp[1],marker='^',c='blue',s=3,label='TDOA estimated position')
+#            plt.pause(0.001)
+#        ax4.scatter(plot_x,plot_y,marker='^',c='blue',s=3,label='TDOA estimated position')    
+    ax4.plot(plot_x,plot_y,c='blue',linewidth=1,label='TDOA estimated position')    
+    plot_x2=[]
+    plot_y2=[]
+    for i in range(len(tagposlist)):
+        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
+        plot_x2.append(temp[0])
+        plot_y2.append(temp[1])
+#    ax4.scatter(plot_x2,plot_y2,marker='o',c='green',s=3,label='DF estimated position')       
+#    ax4.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3,label='real position')
+    ax4.plot(plot_x2,plot_y2,c='green',linewidth=1,label='DF estimated position')       
+#    ax4.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],c='r',linewidth=1,label='real position')
+    ax4.set_position([0.1,0.1,0.8,0.7])
+    fig4.legend(loc='upper left')
+    ax4.set_title("Acceleration motion analysis")        
+    ax4.set_xlabel('x-axis(m)')
+    ax4.set_ylabel('y-axis(m)')     
+    
+    
