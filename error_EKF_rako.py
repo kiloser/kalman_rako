@@ -124,23 +124,30 @@ class RAKOEKF():
         self.dt_imu=dt_imu
         self.dt_uwb=dt_uwb
         self.step=dt_uwb/dt_imu
-        self.P=0;
+        self.P=np.diag([.1, .1, .1, .1, .1, .1])#初始化协方差    
         self.ac_num=num_Anchor
         self.ac_pos=Anchor_pos
-        self.A_mat=np.mat(np.zeros((num_Anchor-1,2)))
-        self.B_mat=np.mat(np.zeros((num_Anchor-1,1)))
-        self.realACdis=np.zeros(num_Anchor-1)
-        for i in range(num_Anchor-1):
-            self.A_mat[i]=self.ac_pos[i+1]-self.ac_pos[0]
-            self.realACdis[i]=np.sqrt((self.ac_pos[i+1][0]-self.ac_pos[0][0])**2+(self.ac_pos[i+1][1]-self.ac_pos[0][1])**2)
+        
     def LSQ_TOA(self,uwbdis):
-            for i in range(self.ac_num-1):
-                self.B_mat[i][0]=(uwbdis[0]**2+self.realACdis[i]**2-uwbdis[i+1]**2)/2
-            tmp=((self.A_mat.T*self.A_mat).I*self.A_mat.T*self.B_mat).T+self.ac_pos[0]
-            toapos=[0,0]
-            toapos[0]=tmp[0,0]
-            toapos[1]=tmp[0,1]
-            return toapos
+        
+        notzeroidx=[idx for idx, e in enumerate(uwbdis) if e!=0]
+        zerocount=list(uwbdis).count(0)
+        ac_pos=self.ac_pos[notzeroidx]
+        uwbdis=uwbdis[notzeroidx]      
+        num_Anchor=self.ac_num-zerocount
+        realACdis=np.zeros(num_Anchor-1)
+        A_mat=np.mat(np.zeros((num_Anchor-1,2)))
+        for i in range(num_Anchor-1):
+            A_mat[i]=ac_pos[i+1]-ac_pos[0]
+            realACdis[i]=np.sqrt((ac_pos[i+1][0]-ac_pos[0][0])**2+(ac_pos[i+1][1]-ac_pos[0][1])**2)
+        B_mat=np.mat(np.zeros((num_Anchor-1,1)))        
+        for i in range(num_Anchor-1):
+            B_mat[i][0]=(uwbdis[0]**2+realACdis[i]**2-uwbdis[i+1]**2)/2
+        tmp=((A_mat.T*A_mat).I*A_mat.T*B_mat).T+ac_pos[0]
+        toapos=[0,0]
+        toapos[0]=tmp[0,0]
+        toapos[1]=tmp[0,1]
+        return toapos
     def H_jac_cacu(self,Xpre,imu_pos):#输入的参数是状态变量的先验估计，返回雅可比矩阵
         x_error,y_error,vx_error,vy_error=symbols('x_error,y_error,vx_error,vy_error')
         x_imu,y_imu=symbols('x_imu,y_imu')
@@ -185,7 +192,10 @@ class RAKOEKF():
         Zobs=sympy.zeros(self.ac_num,1)
         for i in range(self.ac_num):
             imudiff2=(tag_pos_imu[0]-self.ac_pos[i,0])**2+(tag_pos_imu[1]-self.ac_pos[i,1])**2
-            Zobs[i,0]=uwb_dis[i]-sympy.sqrt(imudiff2)
+            if uwb_dis[i]!=0:
+                Zobs[i,0]=uwb_dis[i]-sympy.sqrt(imudiff2)
+            else:
+                Zobs[i,0]=0
 #        Zobs[1,0]=0
         return Zobs
     def ekffilter(self,accel_array,uwb_dis):

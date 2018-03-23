@@ -225,6 +225,7 @@ class UKF_rako(UKF):
         2号基站的到达时间减去1号基站的到达时间-1s
         第i列代表各个基站减去第i基站的时间差
         '''
+        zeroidx=[idx for idx, e in enumerate(arrive_time) if e!=0]
         dis_diff=np.zeros((Anchor_num,Anchor_num))
         for i in range(self.acnum):
             dis_diff[:,i]=arrive_time-arrive_time[i]
@@ -242,16 +243,20 @@ class UKF_rako(UKF):
         diff_mat=dis_diff-dis_imu
         errsum=[]
         '''
-        针对误差最大的那个数据我们丢弃
+        针对丢失的时间戳数据要令观测矩阵的相关项为0
+        如果数据戳都存在则针对误差最大的那个数据我们选择丢弃
         '''
-        for row in diff_mat:
-            errsum.append(sum(map(abs,row)))
-        idx=np.argsort(errsum)
-#        diff_mat[idx[0],:]=diff_mat[idx[0],:]/2
-#        diff_mat[:,idx[0]]=diff_mat[:,idx[0]]/2
-        diff_mat[:,idx[0]]=0
-        diff_mat[idx[0],:]=0
-        
+        if zeroidx==[]:
+            for row in diff_mat:
+                errsum.append(sum(map(abs,row)))
+            idx=np.argsort(errsum)
+    #        diff_mat[idx[0],:]=diff_mat[idx[0],:]/2
+    #        diff_mat[:,idx[0]]=diff_mat[:,idx[0]]/2
+            diff_mat[:,idx[0]]=0
+            diff_mat[idx[0],:]=0
+        else:
+            diff_mat[:,zeroidx]=0
+            diff_mat[zeroidx,:]=0
 #        diff_mat=diff_mat/2
         for i in range(0,self.acnum-1):
             for j in range(i+1,self.acnum):

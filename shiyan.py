@@ -144,3 +144,4 @@ ax.set_xlabel('x-axis(m)')
 ax.set_ylabel('y-axis(m)')
 ax.set_zlabel('GDOP')
 ax.legend([line],['Anchor position'])
+
