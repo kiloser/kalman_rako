@@ -15,10 +15,11 @@ def readdata(TS,accel,tagid):
                 Tstmp[i]=int(s.split()[3],16)*15.65*1e-12
             TS.append(Tstmp)    
             acceltmp=np.zeros((100,2))    
-            for i in range(100):
-                s=fd.readline().split()
-                acceltmp[i,0]=float(s[0])
-                acceltmp[i,1]=float(s[1])
+            if tagid!=0:
+                for i in range(100):
+                    s=fd.readline().split()
+                    acceltmp[i,0]=float(s[0])
+                    acceltmp[i,1]=float(s[1])
             accel.append(acceltmp)
     except (EOFError,IndexError):
         pass

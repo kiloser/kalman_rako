@@ -23,13 +23,88 @@ def readdata(TS,accel):
     fd.close()
     
 def checkmpudata(accel):
-    cnt=0
-    for i in accel:
-        if abs(i)<0.0001:
-            cnt+=1
-    if cnt>10:
+    accelx=accel[:,0]
+    accely=accel[:,1]
+    accelx=accelx.ravel()
+    accely=accely.ravel()
+    zerocountx=list(accelx).count(0)
+    zerocounty=list(accely).count(0)
+    
+    if zerocountx>30 or zerocounty>30:
         return False
     else:
+        if accelx[0]==0:
+            for idx,ac in enumerate(accelx):
+                if ac!=0:
+                    break
+            accelx[0:idx+1]=accelx[idx+1]
+            
+        if accelx[-1]==0:
+            tmp=list(accelx)
+            tmp.reverse()
+            tmp=np.array(tmp)
+            for idx,ac in enumerate(tmp):
+                if ac!=0:
+                    break
+            tmp[0:idx+1]=tmp[idx+1]    
+            tmp=list(accelx)
+            tmp.reverse()
+            accelx=np.array(tmp)
+        
+        iszero=0
+        startidx=0
+        
+        while True:
+            for idx1,ac in enumerate(accelx[startidx:]):
+                if ac==0:
+                    iszero=1
+                    break   
+            if iszero:    
+                for idx2,ac in enumerate(accelx[idx1:]):
+                    if ac!=0:
+                        break         
+                accelx[idx1:idx2+1]=(accelx[idx1-1]+accelx[idx2+1])/2
+            else:
+                break
+            startidx=idx2+1    
+
+        if accely[0]==0:
+            for idx,ac in enumerate(accely):
+                if ac!=0:
+                    break
+            accely[0:idx+1]=accely[idx+1]
+            
+        if accely[-1]==0:
+            tmp=list(accely)
+            tmp.reverse()
+            tmp=np.array(tmp)
+            for idx,ac in enumerate(tmp):
+                if ac!=0:
+                    break
+            tmp[0:idx+1]=tmp[idx+1]    
+            tmp=list(accely)
+            tmp.reverse()
+            accely=np.array(tmp)
+        
+        iszero=0
+        startidx=0
+        
+        while True:
+            for idx1,ac in enumerate(accely[startidx:]):
+                if ac==0:
+                    iszero=1
+                    break   
+            if iszero:    
+                for idx2,ac in enumerate(accely[idx1:]):
+                    if ac!=0:
+                        break         
+                accely[idx1:idx2+1]=(accely[idx1-1]+accely[idx2+1])/2
+            else:
+                break
+            startidx=idx2+1              
+        
+        accel[:,0]=accelx
+        accel[:,1]=accely
         return True
 
 def checkuwbdata(dis):
