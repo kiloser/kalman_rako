@@ -7,7 +7,7 @@ from numpy import dot, array
 import matplotlib.pyplot as plt
 import math
 import statsmodels.api as sm
-
+plt.rc('font',size=14)
 def cdfsolve(p,cdffun):
     initx=0
     while cdffun(initx)<p:
@@ -321,7 +321,7 @@ if idx=='1':
     ax4.plot(plot_x2,plot_y2,linewidth=1,c='limegreen',label='DF estimated position')
     ax4.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
     
-    ax4.set_title('acceleration motion analysis')
+    ax4.set_title('Acceleration motion analysis')
     ax4.set_xlabel('x-axis(m)')
     ax4.set_ylabel('y-axis(m)')
     ax4.legend(loc='upper left')    
@@ -387,7 +387,8 @@ if idx=='2':
         temp=ekf.LSQ_TOA(data)
         plot_x.append(temp[0])
         plot_y.append(temp[1])
-    ax5.plot(plot_x,plot_y,linewidth=1,c='blue',label='TOA estimated position')
+    ax5.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1.5,c='r',label='real position')
+    ax5.plot(plot_x,plot_y,linewidth=1.5,c='blue',label='TOA estimated position')
     plt.show()   
     
     plot_x2=[]
@@ -399,12 +400,12 @@ if idx=='2':
         plot_y2.append(temp[1])
         GDOPvalue.append(get_TOAGDOP(tagposlist[i],Anchor_pos,Anchor_num))
     ax5.plot(plot_x2,plot_y2,linewidth=1,c='limegreen',label='DF estimated position')
-    ax5.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
     
-    ax5.set_title('circular motion analysis')
+    
+    ax5.set_title('Circular motion analysis')
     ax5.set_xlabel('x-axis(m)')
     ax5.set_ylabel('y-axis(m)')
-    ax5.legend(loc='upper left')  
+    ax5.legend(loc='upper right')  
     
     plot_x=np.array(plot_x,dtype='float')
     plot_y=np.array(plot_y,dtype='float')
@@ -425,7 +426,7 @@ if idx=='2':
     ax1=fig1.add_subplot(111)
     ax1.plot(GDOPvalue,toa_xerr,label='toa_xerr')
     ax1.plot(GDOPvalue,df_xerr,label='df_xerr')
-    ax1.set_title('circular motion x-axis error')
+    ax1.set_title('Circular motion x-axis error')
     ax1.set_xlabel('GDOP value')
     ax1.set_ylabel('x error')
     ax1.legend(loc='upper left')
@@ -434,7 +435,7 @@ if idx=='2':
     ax3=fig3.add_subplot(111)
     ax3.plot(GDOPvalue,toa_yerr,label='toa_yerr')
     ax3.plot(GDOPvalue,df_yerr,label='df_yerr')
-    ax3.set_title('circular motion y-axis error')
+    ax3.set_title('Circular motion y-axis error')
     ax3.set_xlabel('GDOP value')
     ax3.set_ylabel('y error')
     ax3.legend(loc='upper left')
@@ -443,7 +444,7 @@ if idx=='2':
     ax4=fig4.add_subplot(111)
     ax4.plot(GDOPvalue,toa_rerr,label='toa_rerr')
     ax4.plot(GDOPvalue,df_rerr,label='df_rerr')
-    ax4.set_title('circular motion distance error')
+    ax4.set_title('Circular motion distance error')
     ax4.set_xlabel('GDOP value')
     ax4.set_ylabel('distance error')
     ax4.legend(loc='upper left')    
@@ -531,7 +532,7 @@ if idx=='3':
     
     ax2.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
 #    ax2.set_position([0.1,0.1,0.8,0.7])
-    ax2.set_title('uniform rectilinear motion analysis')
+    ax2.set_title('Uniform rectilinear motion analysis')
     ax2.set_xlabel('x-axis(m)')
     ax2.set_ylabel('y-axis(m)')
     ax2.legend(loc='upper left')
@@ -540,7 +541,7 @@ if idx=='3':
     ax1=fig1.add_subplot(111)
     ax1.plot(GDOPvalue,toa_xerr,label='toa_xerr')
     ax1.plot(GDOPvalue,df_xerr,label='df_xerr')
-    ax1.set_title('uniform rectilinear motion x-axis error')
+    ax1.set_title('Uniform rectilinear motion x-axis error')
     ax1.set_xlabel('GDOP value')
     ax1.set_ylabel('x error')
     ax1.legend(loc='upper left')
@@ -549,7 +550,7 @@ if idx=='3':
     ax3=fig3.add_subplot(111)
     ax3.plot(GDOPvalue,toa_yerr,label='toa_yerr')
     ax3.plot(GDOPvalue,df_yerr,label='df_yerr')
-    ax3.set_title('uniform rectilinear motion y-axis error')
+    ax3.set_title('Uniform rectilinear motion y-axis error')
     ax3.set_xlabel('GDOP value')
     ax3.set_ylabel('y error')
     ax3.legend(loc='upper left')
@@ -558,7 +559,7 @@ if idx=='3':
     ax4=fig4.add_subplot(111)
     ax4.plot(GDOPvalue,toa_rerr,label='toa_rerr')
     ax4.plot(GDOPvalue,df_rerr,label='df_rerr')
-    ax4.set_title('uniform rectilinear motion distance error')
+    ax4.set_title('Uniform rectilinear motion distance error')
     ax4.set_xlabel('GDOP value')
     ax4.set_ylabel('distance error')
     ax4.legend(loc='upper left')
@@ -679,7 +680,10 @@ if idx=='5':
 #    for i in np.linspace(0,50,100,endpoint=False):
 #        for j in np.linspace(0,50,1,endpoint=False):
 #            tagposlist.append([i,j])
-    tagposlist.append([-8.21,-1.57])
+    tagposlist.append([-14.32,-5.52])
+#    for i in np.linspace(-10,15,5,endpoint=True):
+#        for j in np.linspace(-10,15,5,endpoint=True):
+#            tagposlist.append([i,j])
     for tagpos in tagposlist:
         #============================================================    
         #let's make some fake data

@@ -7,6 +7,7 @@ import scipy.fftpack
 import numpy as np
 import scipy
 from scipy import signal
+plt.rc('font',size=14)
 def simple_low_pass(acceldata):
     udata=0
     lastdata=0

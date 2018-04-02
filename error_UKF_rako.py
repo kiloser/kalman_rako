@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import math
 import statsmodels.api as sm
 import sympy
+plt.rc('font',size=14)
 def cdfsolve(p,cdffun):
     initx=0
     while cdffun(initx)<p:
@@ -507,7 +508,7 @@ if idx=='2':
     ax5.plot(plot_x,plot_y,linewidth=1,c='blue',label='TDOA estimated position')
     ax5.plot(plot_x2,plot_y2,linewidth=1,c='green',label='DF estimated position')       
     ax5.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
-    ax5.legend()    
+    ax5.legend(loc='upper right')    
     ax5.set_title("Circular motion analysis")        
     ax5.set_xlabel('x-axis(m)')
     ax5.set_ylabel('y-axis(m)')    
@@ -639,7 +640,7 @@ if idx=='3':
     
 #    ax2.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],linewidth=1,c='r',label='real position')
     ax2.set_position([0.1,0.1,0.8,0.7])
-    ax2.set_title('uniform rectilinear motion analysis')
+    ax2.set_title('Uniform rectilinear motion analysis')
     ax2.set_xlabel('x-axis(m)')
     ax2.set_ylabel('y-axis(m)')
     fig2.legend(loc='upper left')
@@ -648,7 +649,7 @@ if idx=='3':
     ax1=fig1.add_subplot(111)
     ax1.plot(GDOPvalue,toa_xerr,label='tdoa_xerr')
     ax1.plot(GDOPvalue,df_xerr,label='df_xerr')
-    ax1.set_title('uniform rectilinear motion x-axis error')
+    ax1.set_title('Uniform rectilinear motion x-axis error')
     ax1.set_xlabel('GDOP value')
     ax1.set_ylabel('x error')
     ax1.legend(loc='upper left')
@@ -657,7 +658,7 @@ if idx=='3':
     ax3=fig3.add_subplot(111)
     ax3.plot(GDOPvalue,toa_yerr,label='tdoa_yerr')
     ax3.plot(GDOPvalue,df_yerr,label='df_yerr')
-    ax3.set_title('uniform rectilinear motion y-axis error')
+    ax3.set_title('Uniform rectilinear motion y-axis error')
     ax3.set_xlabel('GDOP value')
     ax3.set_ylabel('y error')
     ax3.legend(loc='upper left')
@@ -666,7 +667,7 @@ if idx=='3':
     ax4=fig4.add_subplot(111)
     ax4.plot(GDOPvalue,toa_rerr,label='tdoa_rerr')
     ax4.plot(GDOPvalue,df_rerr,label='df_rerr')
-    ax4.set_title('uniform rectilinear motion distance error')
+    ax4.set_title('Uniform rectilinear motion distance error')
     ax4.set_xlabel('GDOP value')
     ax4.set_ylabel('distance error')
     ax4.legend(loc='upper left')                
@@ -737,25 +738,25 @@ if idx=='5':
 #                         [1.54,7.68],
 #                         [6.2,6.84]])
 #
-    Anchor_num=4
-    Anchor_pos=np.array([[ 0.        ,  0.        ],
-                         [-7.32813654, -7.37940728],
-                         [-9.84740095, -3.57072914],
-                         [-6.23849505,  1.60146106]])
-    base=np.array([[  2.5       ,   1.        ],
-                   [ -9.81322951, -14.76021507],
-                   [ -7.35013442,   8.69576844],
-                   [-19.66336393,  -7.06444663]])
+#    Anchor_num=4
+#    Anchor_pos=np.array([[ 0.        ,  0.        ],
+#                         [-7.32813654, -7.37940728],
+#                         [-9.84740095, -3.57072914],
+#                         [-6.23849505,  1.60146106]])
+#    base=np.array([[  2.5       ,   1.        ],
+#                   [ -9.81322951, -14.76021507],
+#                   [ -7.35013442,   8.69576844],
+#                   [-19.66336393,  -7.06444663]])
             
     fig1=plt.figure(1)
     ax1=fig1.add_subplot(111)
-    ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
-    ax1.plot(base[0:2,0],base[0:2,1],color="black")
-    ax1.plot([base[1,0],base[3,0]],[base[1,1],base[3,1]],color="black")
-    ax1.plot(base[2:4,0],base[2:4,1],color="black")
-    ax1.plot([base[0,0],base[2,0]],[base[0,1],base[2,1]],color="black")   
-    ax1.axis('equal')
-    ax1.scatter([-2.74],[1.87],marker='X',c='brown',s=7)
+#    ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
+#    ax1.plot(base[0:2,0],base[0:2,1],color="black")
+#    ax1.plot([base[1,0],base[3,0]],[base[1,1],base[3,1]],color="black")
+#    ax1.plot(base[2:4,0],base[2:4,1],color="black")
+#    ax1.plot([base[0,0],base[2,0]],[base[0,1],base[2,1]],color="black")   
+#    ax1.axis('equal')
+#    ax1.scatter([-2.74],[1.87],marker='X',c='brown',s=7)
 
     ax1.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)  
     tagposlist=[]
@@ -770,15 +771,17 @@ if idx=='5':
     toaCEP=[]
     dfCEP=[]
     
-    for i in np.linspace(-10.23,25,1,endpoint=True):
-        for j in np.linspace(-0.38,25,1,endpoint=True):
-            tagposlist.append([i,j])
-    
-#    x=np.linspace(5,30,200,endpoint=True)
-#    y=1.37*(x-5)+7.69
-#    tagposlist=[]
-#    for i in range(len(x)):
-#        tagposlist.append([x[i],y[i]])
+#    for i in np.linspace(-11.23,25,1,endpoint=True):
+#        for j in np.linspace(-0.7,25,1,endpoint=True):
+#            tagposlist.append([i,j])
+#    for i in np.linspace(-15,25,10,endpoint=True):
+#        for j in np.linspace(-15,25,10,endpoint=True):
+#            tagposlist.append([i,j])    
+    x=np.linspace(5,30,200,endpoint=True)
+    y=1.37*(x-5)+7.69
+    tagposlist=[]
+    for i in range(len(x)):
+        tagposlist.append([x[i],y[i]])
     
     plot_x2s=[]
     plot_y2s=[]
@@ -873,13 +876,13 @@ if idx=='5':
     tagposlist=np.array(tagposlist)
     fig1_line1=ax1.scatter(plot_xs,plot_ys,marker='^',c='blue',s=3)      
     fig1_line2=ax1.scatter(plot_x2s,plot_y2s,marker='o',c='limegreen',s=3)
-    fig1_line3=ax1.scatter(tagposlist[:,0],tagposlist[:,1],marker='+',c='r',linewidths=0.05,s=22)    
+    fig1_line3=ax1.scatter(tagposlist[:,0],tagposlist[:,1],marker='+',c='r',linewidths=0.05,s=3)    
     
     labels=['TDOA estimated position','DF estimated position','real position']
     handles=[fig1_line1,fig1_line2,fig1_line3]
     ax1.set_position([0.1,0.1,0.8,0.7])
     ax1.set_title("Fixed position analysis")        
-    fig1.legend(handles,labels,loc="upper left")
+    ax1.legend(handles,labels,loc="lower right")
     ax1.set_xlabel('x-axis(m)')
     ax1.set_ylabel('y-axis(m)')
 
