@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+'''
+滤波代码，stm32已经实现了二阶低通滤波
+'''
 __author__='racode'
 import numpy as np
 from scipy.signal import lfilter,butter

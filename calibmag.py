@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+'''
+用来矫正磁力计误差
+'''
 import MPUdataread
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 import scipy
+import scipy.optimize
 from mpl_toolkits.mplot3d import Axes3D
 magmod=345
 def magfunc(p,x,y,z):
@@ -39,6 +43,7 @@ def KBcacu(paras):
                  [-beta/kx, 1/ky, -gama/kz],
                  [0, 0, 1/kz]])
     return K,B
+
 filename="magdata1.txt"
 frameread=MPUdataread.get_frameread_fun(filename)
 maglist=list()

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+'''
+用来矫正加速度非正交误差，不过数据有些问题
+'''
 import MPUdataread
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 import scipy
+import scipy.optimize
 from mpl_toolkits.mplot3d import Axes3D
 
 def accelfunc(p,x,y,z):

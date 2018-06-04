@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+'''
+UKF的仿真代码,主要的类和函数包中的一致。
+'''
 from filterpy.kalman import UnscentedKalmanFilter as UKF
 from filterpy.kalman import MerweScaledSigmaPoints
 from filterpy.kalman import JulierSigmaPoints
@@ -132,12 +135,18 @@ class UKF_rako(UKF):
         return tag_pos_imu        
     def chan_algorithm(self,arrivetime):
         idx=[0]
+        notzeroidx=[idx for idx, e in enumerate(arrivetime) if e!=0]
+        zerocount=list(arrivetime).count(0)
+        acnum=self.acnum-zerocount
+        acpos=self.acpos[notzeroidx,:]
+        arrivetime=arrivetime[notzeroidx]      
+        
         idx=np.argsort(arrivetime)
         arrivetime=np.take(arrivetime,idx)
-        base_pos=np.zeros((self.acnum,2))
-        for i in range(self.acnum):
-            base_pos[i,:]=self.acpos[idx[i],:]
-        for i in range(self.acnum-1,-1,-1):
+        base_pos=np.zeros((acnum,2))
+        for i in range(acnum):
+            base_pos[i,:]=acpos[idx[i],:]
+        for i in range(acnum-1,-1,-1):
             base_pos[i,:]=base_pos[i,:]-base_pos[0,:]
         evVal=np.concatenate((np.mat(arrivetime).T,base_pos),axis=1)
 #        evVal=np.concatenate((np.mat(arrivetime).T,self.acpos),axis=1)
@@ -209,8 +218,8 @@ class UKF_rako(UKF):
         if Za[1]<0:
             ms0[1]=-abs(ms0[1])
             
-        ms0[0] = ms0[0] + self.acpos[idx[0],0]
-        ms0[1] = ms0[1] + self.acpos[idx[0],1]
+        ms0[0] = ms0[0] + acpos[idx[0],0]
+        ms0[1] = ms0[1] + acpos[idx[0],1]
     
         return ms0
 
@@ -228,7 +237,7 @@ class UKF_rako(UKF):
         第i列代表各个基站减去第i基站的时间差
         '''
         zeroidx=[idx for idx, e in enumerate(arrive_time) if e==0]
-        dis_diff=np.zeros((Anchor_num,Anchor_num))
+        dis_diff=np.zeros((self.acnum,self.acnum))
         for i in range(self.acnum):
             dis_diff[:,i]=arrive_time-arrive_time[i]
         dis_diff=C.c*dis_diff
@@ -239,7 +248,7 @@ class UKF_rako(UKF):
         for pos in self.acpos:
             dimu.append(np.sqrt((pos[0]-x_imu)**2+(pos[1]-y_imu)**2))
         dimu=np.array(dimu)
-        dis_imu=np.zeros((Anchor_num,Anchor_num))
+        dis_imu=np.zeros((self.acnum,self.acnum))
         for i in range(self.acnum):
             dis_imu[:,i]=dimu-dimu[i]
         diff_mat=dis_diff-dis_imu
@@ -928,229 +937,5 @@ if idx=='5':
     
 #    
 #        print(tgpos)       
-if idx=='6':
-#    Anchor_num=5
-#    Anchor_pos=np.array([[0,0],
-#                         [5,0],
-#                         [6.54,4.75],
-#                         [2.5,7.69],
-#                         [-1.54,4.75]])
-    Anchor_num=5
-    Anchor_pos=np.array([[0,0],
-                         [4.2,0],
-                         [1.54,7.68],
-                         [6.2,6.84],
-                         [-0.25,3.5]])
-    fig4=plt.figure(4)
-    ax4=fig4.add_subplot(111)
-    ax4.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
-    tagpoint_len=81
-    tagposlist=np.array((tagpoint_len,2))
-    acceldata=np.zeros((tagpoint_len*100,2))
-    ac=[1]*100+[0]*1900+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5
-    hold=np.zeros((300,2))
-    acceldata[:2100,0]=acceldata[:2100,0]+ac
-    acceldata[2000:4100,1]=acceldata[2000:4100,1]+ac
-    acceldata[4000:6100,0]=acceldata[4000:6100,0]-ac
-    acceldata[6000:8100,1]=acceldata[6000:8100,1]-ac
-    acceldata=np.concatenate((hold,acceldata,hold),axis=0)
-    
-    tagpoint_len+=6
-    initstat=[-1,2.5]+[0,0]
-    tagposlist=imutrace(initstat,acceldata)
-    tagpoint_len=len(tagposlist)
-
-    for i in range(2):
-        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
-        
-    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
-    realdis_data=np.zeros((tagpoint_len,Anchor_num))
-    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
-    for j in range(len(tagposlist)):
-        realdis=np.zeros(Anchor_num)
-        tgpos=tagposlist[j]
-        for i in range(Anchor_num):
-            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
-            realdis_data[j,i]=realdis[i]
-            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
-            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
-            
-    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)
-      
-    plot_x=[]
-    plot_y=[]
-    
-    plt.ion()
-    #ax.set_xlim(-1,11)
-    #ax.set_ylim(-1,11)
-    for data in arrivetime_data:
-        temp=ukf.chan_algorithm(data)
-        temp=np.array(temp).ravel()
-        plot_x.append(temp[0])
-        plot_y.append(temp[1])
-#        ax4.scatter(temp[0],temp[1],marker='^',c='blue',s=3,label='TDOA estimated position')
-#            plt.pause(0.001)
-#        ax4.scatter(plot_x,plot_y,marker='^',c='blue',s=3,label='TDOA estimated position')    
-    ax4.plot(plot_x,plot_y,c='blue',linewidth=1,label='TDOA estimated position')    
-    plot_x2=[]
-    plot_y2=[]
-    for i in range(len(tagposlist)):
-        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
-        plot_x2.append(temp[0])
-        plot_y2.append(temp[1])
-#    ax4.scatter(plot_x2,plot_y2,marker='o',c='green',s=3,label='DF estimated position')       
-#    ax4.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3,label='real position')
-    ax4.plot(plot_x2,plot_y2,c='green',linewidth=1,label='DF estimated position')       
-#    ax4.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],c='r',linewidth=1,label='real position')
-    ax4.set_position([0.1,0.1,0.8,0.7])
-    fig4.legend(loc='upper left')
-    ax4.set_title("Acceleration motion analysis")        
-    ax4.set_xlabel('x-axis(m)')
-    ax4.set_ylabel('y-axis(m)')     
-    
-if idx=='7':
-#    Anchor_num=5
-#    Anchor_pos=np.array([[0,0],
-#                         [5,0],
-#                         [6.54,4.75],
-#                         [2.5,7.69],
-#                         [-1.54,4.75]])
-    Anchor_num=5
-    Anchor_pos=np.array([[ 0.        ,  0.        ],
-                         [-4.13      , -4.42      ],
-                         [-7.32813654, -7.37940728],
-                         [-9.84740095, -3.57072914],
-                         [-6.23849505,  1.60146106]])
-    base=np.array([[  2.5       ,   1.        ],
-                   [ -9.81322951, -14.76021507],
-                   [ -7.35013442,   8.69576844],
-                   [-19.66336393,  -7.06444663]])
-    fig4=plt.figure(4)
-    ax4=fig4.add_subplot(111)
-    ax4.scatter(Anchor_pos[:,0],Anchor_pos[:,1],marker='o',c='black',s=6)
-    ax4.plot(base[0:2,0],base[0:2,1],color="black")
-    ax4.plot([base[1,0],base[3,0]],[base[1,1],base[3,1]],color="black")
-    ax4.plot(base[2:4,0],base[2:4,1],color="black")
-    ax4.plot([base[0,0],base[2,0]],[base[0,1],base[2,1]],color="black")   
-    ax4.axis('equal')
-    ax4.scatter([-2.74],[1.87],marker='X',c='brown',s=7)
-    tagpoint_len=76
-    tagposlist=np.array((tagpoint_len,2))
-    acceldata=np.zeros((tagpoint_len*100,2))
-    
-    theta=sympy.Symbol('theta')
-    rotate=sympy.Matrix([[sympy.cos(theta),-sympy.sin(theta)],
-                         [sympy.sin(theta),sympy.cos(theta)]])    
-    
-    duration=1000
-    ac=[1]*100+[0]*duration+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5
-    hold=np.zeros((300,2))
-    
-    acceldata[:1200,0]=acceldata[:1200,0]+ac
-    
-    duration=1700
-    ac=[1]*100+[0]*duration+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5
-    acceldata[1100:3000,1]=acceldata[1100:3000,1]+ac
-    
-    angel=10/180*math.pi
-    rmat=sympy.matrix2numpy(rotate.evalf(subs={theta:angel}),dtype='float')
-    acceldata[1100:3000]=np.dot(acceldata[1100:3000],rmat)
-    
-    duration=1100
-    ac=[1]*100+[0]*duration+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5  
-    acceldata[2900:4200,0]=acceldata[2900:4200,0]-ac
-    
-    duration=400
-    ac=[1]*100+[0]*duration+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5  
-    acceldata[4200:4800,1]=acceldata[4200:4800,1]-ac
-    angel=30/180*math.pi
-    rmat=sympy.matrix2numpy(rotate.evalf(subs={theta:angel}),dtype='float')
-    acceldata[4200:4800]=np.dot(acceldata[4200:4800],rmat)
-
-    duration=2000
-    ac=[1]*100+[0]*duration+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5  
-    acceldata[4800:7000,1]=acceldata[4800:7000,1]-ac
-    angel=0/180*math.pi
-    rmat=sympy.matrix2numpy(rotate.evalf(subs={theta:angel}),dtype='float')
-    acceldata[4800:7000]=np.dot(acceldata[4800:7000],rmat)
-      
-    duration=400
-    ac=[1]*100+[0]*duration+[-1]*100
-    ac=np.array(ac)
-    ac=ac*0.5  
-    acceldata[7000:7600,1]=acceldata[7000:7600,1]-ac
-    angel=-30/180*math.pi
-    rmat=sympy.matrix2numpy(rotate.evalf(subs={theta:angel}),dtype='float')
-    acceldata[7000:7600]=np.dot(acceldata[7000:7600],rmat)
-#    acceldata[6000:8100,1]=acceldata[6000:8100,1]-ac
-    acceldata=np.concatenate((hold,acceldata,hold),axis=0)
-    
-    angel=38/180*math.pi
-    rmat=sympy.matrix2numpy(rotate.evalf(subs={theta:angel}),dtype='float')
-    acceldata=np.dot(acceldata,rmat)
-    
-    tagpoint_len+=6
-    initstat=[-17,-6.5]+[0,0]
-    tagposlist=imutrace(initstat,acceldata)
-    tagpoint_len=len(tagposlist)
-
-    for i in range(2):
-        acceldata[:,i]=acceldata[:,i]+np.random.normal(0,std_a,tagpoint_len*100)
-        
-    uwbdis_data=np.zeros((tagpoint_len,Anchor_num))
-    realdis_data=np.zeros((tagpoint_len,Anchor_num))
-    arrivetime_data=np.zeros((tagpoint_len,Anchor_num))
-    for j in range(len(tagposlist)):
-        realdis=np.zeros(Anchor_num)
-        tgpos=tagposlist[j]
-        for i in range(Anchor_num):
-            realdis[i]=np.sqrt((tgpos[0]-Anchor_pos[i][0])**2+(tgpos[1]-Anchor_pos[i][1])**2)    
-            realdis_data[j,i]=realdis[i]
-            uwbdis_data[j,i]=realdis[i]+np.random.normal(0,std_r,1)
-            arrivetime_data[j,i]=uwbdis_data[j,i]/C.c
-            
-    ukf=UKF_rako(sigma_a,sigma_r,Anchor_pos,Anchor_num,dt_IMU,dt_UBW)
-      
-    plot_x=[]
-    plot_y=[]
-    
-    plt.ion()
-    #ax.set_xlim(-1,11)
-    #ax.set_ylim(-1,11)
-    for data in arrivetime_data:
-        temp=ukf.chan_algorithm(data)
-        temp=np.array(temp).ravel()
-        plot_x.append(temp[0])
-        plot_y.append(temp[1])
-#        ax4.scatter(temp[0],temp[1],marker='^',c='blue',s=3,label='TDOA estimated position')
-#            plt.pause(0.001)
-#        ax4.scatter(plot_x,plot_y,marker='^',c='blue',s=3,label='TDOA estimated position')    
-    ax4.plot(plot_x,plot_y,c='blue',linewidth=1,label='TDOA estimated position')    
-    plot_x2=[]
-    plot_y2=[]
-    for i in range(len(tagposlist)):
-        temp=ukf.ukf_filter(acceldata[100*i:100*(i+1),:],arrivetime_data[i])
-        plot_x2.append(temp[0])
-        plot_y2.append(temp[1])
-#    ax4.scatter(plot_x2,plot_y2,marker='o',c='green',s=3,label='DF estimated position')       
-#    ax4.scatter(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],marker='.',c='r',s=3,label='real position')
-    ax4.plot(plot_x2,plot_y2,c='green',linewidth=1,label='DF estimated position')       
-#    ax4.plot(np.array(tagposlist)[:,0],np.array(tagposlist)[:,1],c='r',linewidth=1,label='real position')
-    ax4.set_position([0.1,0.1,0.8,0.7])
-    fig4.legend(loc='upper left')
-    ax4.set_title("Acceleration motion analysis")        
-    ax4.set_xlabel('x-axis(m)')
-    ax4.set_ylabel('y-axis(m)')     
+  
     

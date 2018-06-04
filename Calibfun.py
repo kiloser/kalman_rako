@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+'''
+在得到相关参数后，用来矫正惯导数据的一些函数
+
+'''
 import numpy as np
 accelscale=[1,    1,    1]
 accelbias=[-755.40186823, -359.90878696, -874.79820164]#cacued fram some files

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+'''
+姿态求解算法的C回调，用于实验验证。后期已经在stm32上实现
+'''
 __author__='racode'
 Dllname=''
 import ctypes

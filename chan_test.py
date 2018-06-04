@@ -4,7 +4,9 @@ Spyder Editor
 
 This is a temporary script file.
 """
-
+'''
+这应该是陶璐移植的matlab的TDOA程序。
+'''
 
 import matplotlib.pyplot as plt
 from scipy import constants as C

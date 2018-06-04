@@ -43,20 +43,9 @@ class RAKOEKF():
         self.P=np.diag([.1, .1, .1, .1, .1, .1])#初始化协方差    
         self.ac_num=num_Anchor
         self.ac_pos=Anchor_pos
-#        self.A_mat=np.mat(np.zeros((num_Anchor-1,2)))
-#        self.B_mat=np.mat(np.zeros((num_Anchor-1,1)))
-#        self.realACdis=np.zeros(num_Anchor-1)
-#        for i in range(num_Anchor-1):
-#            self.A_mat[i]=self.ac_pos[i+1]-self.ac_pos[0]
-#            self.realACdis[i]=np.sqrt((self.ac_pos[i+1][0]-self.ac_pos[0][0])**2+(self.ac_pos[i+1][1]-self.ac_pos[0][1])**2)
+
     def LSQ_TOA(self,uwbdis):
-#            for i in range(self.ac_num-1):
-#                self.B_mat[i][0]=(uwbdis[0]**2+self.realACdis[i]**2-uwbdis[i+1]**2)/2
-#            tmp=((self.A_mat.T*self.A_mat).I*self.A_mat.T*self.B_mat).T+self.ac_pos[0]
-#            toapos=[0,0]
-#            toapos[0]=tmp[0,0]
-#            toapos[1]=tmp[0,1]
-#            return toapos
+
         notzeroidx=[idx for idx, e in enumerate(uwbdis) if e!=0]
         zerocount=list(uwbdis).count(0)
         ac_pos=self.ac_pos[notzeroidx]
